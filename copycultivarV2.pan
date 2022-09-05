@@ -1,6 +1,6 @@
 local recordarray, nineOrHundred
 
-nineOrHundred=""
+nineOrHundred = ""
 recordarray = ""
 
 loop
