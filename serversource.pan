@@ -865,6 +865,174 @@ ___ PROCEDURE .calc_total_inv_price ____________________________________________
 «Invoice Total COG»=«Invoice Unit Price»+«Invoice Shipping_handling»+«Invoice Cleaning»+«Invoice Phyto»+«Invoice Payment Fees»+«Invoice Other»
 ___ ENDPROCEDURE .calc_total_inv_price _________________________________________
 
+___ PROCEDURE .fill_inv_unit_prices ____________________________________________
+firstrecord
+loop
+    «Invoice Unit Price» = price
+    call ".calc_total_inv_price"
+    downrecord
+until info("stopped")
+___ ENDPROCEDURE .fill_inv_unit_prices _________________________________________
+
+___ PROCEDURE .calc_order_unit_costs ___________________________________________
+; This macro will calculate+fill the per-unit shipping cost of items in a given shipment.
+; Assumes the selection matches a rec'd shipment.
+; Can handle the following shipments/has following reqs:
+;   - rec'd unit is one of: lb, M, MM, kg, g, oz
+;   - price unit is one of: #, M, MM, kg, g, oz
+;   - 10g ct needed for M/MM
+
+
+local vLbs, vNumItems, vTotShipmentWeight, vTotPrice, vPricePerPound
+local vSeedCt, vUnit, vSeedsPerPound, vUnitsPerPound, vPricePerUnit
+local vTotPhytoCost, vPhytoPerPound, vPhytoPerUnit, vTotFeeCost, vFeePerPound, vFeePerUnit
+
+vNumItems = 0
+vTotShipmentWeight = float(0)
+
+;TODO: warn if selection is big, in case of accidental selection? 
+
+gettext "How much was shipping?", vTotPrice
+gettext "How much was phyto?", vTotPhytoCost
+gettext "How much were other fees?", vTotFeeCost	; note that grower bonus gets normalized across the shipment
+
+; First loop gets the total weight in lbs
+firstrecord
+loop
+    vNumItems = vNumItems + 1
+    vLbs = 0
+    vSeedCt = 0
+    
+    ; Validate that this macro can actually process this item
+    if receiveunit notcontains "lb" AND receiveunit notcontains "M" AND receiveunit notcontains "g" AND receiveunit notcontains "oz"
+        message "cannot process receiveunit of " + receiveunit + " for " + str(«cat #»)
+        STOP
+    endif
+    if priceunit notcontains "#" AND priceunit notcontains "M" AND priceunit notcontains "g" AND priceunit notcontains "oz"
+        message "cannot process priceunit of " + priceunit + " for " + str(«cat #»)
+        STOP
+    endif
+    
+    ; Core logic of this loop; find this item's weight in lbs
+    case receiveunit="lb":
+        vLbs = amtrec
+    case receiveunit="M":
+        vSeedCt = amtrec * 1000
+        vLbs = vSeedCt / «10 g count» * 10 / 453.592
+    case receiveunit="MM":
+        vSeedCt = amtrec * 1000000
+        vLbs = vSeedCt / «10 g count» * 10 / 453.592
+    case receiveunit contains "kg":
+        vLbs = amtrec * 2.2
+    case receiveunit contains "g":
+        vLbs = amtrec / 453.592
+    case receiveunit contains "oz":
+        vLbs = amtrec / 16
+    endcase
+    
+    ; Verify we found a valid weight
+    if vLbs = 0
+        message "can't calculate weight in lbs for " + str(«cat #»)
+        STOP
+    endif
+    
+    vTotShipmentWeight = vTotShipmentWeight + vLbs
+    
+    downrecord
+until info("stopped")
+
+
+; Now that we have the total cost of shipping and the total lbs of the shipment,
+;   calculate the cost per lb for shipping (and fees) for this order
+vPricePerPound = val(vTotPrice) / vTotShipmentWeight
+vPhytoPerPound = val(vTotPhytoCost) / vTotShipmentWeight
+vFeePerPound = val(vTotFeeCost) / vTotShipmentWeight
+;message "price per pound: " + str(vPricePerPound)
+;drawobjects
+
+
+; Need to loop through again to calculate + fill shipping unit costs by priceunit
+firstrecord
+loop
+    vPricePerUnit = 0
+    vSeedCt = 0
+    vUnit = 0
+    
+    case receiveunit="M":
+        vSeedCt = amtrec * 1000
+    case receiveunit="MM":
+        vSeedCt = amtrec * 1000000
+    endcase
+    
+    case priceunit="M":
+        vUnit = 1000
+    case priceunit="MM":
+        vUnit = 1000000
+    endcase
+    
+    if vSeedCt > 0
+        if «10 g count» = 0
+            ; note this will only report first missing 10g ct, not all missing
+            message "There is a missing 10g count (" + str(«cat #») + "); cannot calculate shipping."
+            STOP
+        endif
+        vLbs = vSeedCt / «10 g count» * 10 / 453.592
+        vSeedsPerPound = vSeedCt / vLbs
+        vUnitsPerPound = round(vSeedsPerPound / vUnit, 0.00001)
+        vPricePerUnit = round(vPricePerPound / vUnitsPerPound, 0.001)
+        vPhytoPerUnit = round(vPhytoPerPound / vUnitsPerPound, 0.001)
+        vFeePerUnit = round(vFeePerPound / vUnitsPerPound, 0.001)
+    else ; Must be a weight-based unit
+        case priceunit contains "#":
+            vPricePerUnit = vPricePerPound
+            vPhytoPerUnit = vPhytoPerPound
+            vFeePerUnit = vFeePerPound
+        case priceunit contains "kg":
+            vPricePerUnit = vPricePerPound * 2.2
+            vPhytoPerUnit = vPhytoPerPound * 2.2
+            vFeePerUnit = vFeePerPound * 2.2
+        case priceunit contains "g":
+            vPricePerUnit = vPricePerPound / 453.592
+            vPhytoPerUnit = vPhytoPerPound / 453.592
+            vFeePerUnit = vFeePerPound / 453.592
+        case priceunit contains "oz":
+            vPricePerUnit = vPricePerPound / 16
+            vPhytoPerUnit = vPhytoPerPound / 16
+            vFeePerUnit = vFeePerPound / 16
+        endcase
+    endif
+    
+    ; Verify we found a valid unit price
+    if vPricePerUnit = 0
+        message "can't calculate unit price for " + str(«cat #»)
+        STOP
+    endif
+    
+    ;message str(vPricePerUnit)
+    ;yesno "Fill shipping costs? " + str(vPricePerUnit)
+    ;if clipboard() contains "Yes"
+        «Invoice Shipping_handling» = vPricePerUnit
+        «Invoice Phyto» = vPhytoPerUnit
+        «Invoice Payment Fees» = vFeePerUnit
+    ;endif
+    
+    call ".calc_total_inv_price"
+    downrecord
+until info("stopped")
+
+drawobjects
+___ ENDPROCEDURE .calc_order_unit_costs ________________________________________
+
+___ PROCEDURE .fill_bonus ______________________________________________________
+firstrecord
+loop
+    «Invoice Other» = «Invoice Unit Price» * .1
+    «Invoice Notes» = "bonus"
+    call ".calc_total_inv_price"
+    downrecord
+until info("stopped")
+___ ENDPROCEDURE .fill_bonus ___________________________________________________
+
 ___ PROCEDURE export_germ_history ______________________________________________
 select «germ_history» ≠ ""
 export "germ_history.txt",str(«cat #»)+¬+str(lot)+¶+«germ_history»
