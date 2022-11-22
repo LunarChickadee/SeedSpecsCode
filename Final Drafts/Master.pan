@@ -199,6 +199,7 @@ find «cat #»>zplaceholder
 ___ ENDPROCEDURE find_missing_invoices _________________________________________
 
 ___ PROCEDURE finditem/1 _______________________________________________________
+local chosen_item
 selectall
 GetScrap "What's the item#"
 
@@ -206,14 +207,18 @@ Synchronize
 
 field «cat #»
 sortup
-Find «cat #»=val(clipboard())
+chosen_item=val(clipboard())
+Find «cat #»=chosen_item
 
 Field lot
+if info("formname")≠""
 drawobjects
+endif
 If  info("Found") 
 stop
 else
-Message "How about a real item number?"
+Message str(chosen_item)+" wasn't found."
+//original was passive aggressive, changed to something normal
 endif
 ___ ENDPROCEDURE finditem/1 ____________________________________________________
 
@@ -269,17 +274,18 @@ sortup
 ___ ENDPROCEDURE map_of_world __________________________________________________
 
 ___ PROCEDURE .tab2 ____________________________________________________________
+/*
 local KeyStroke,fName
 fName=""
 KeyStroke=""
 KeyStroke=info("trigger")[5,-1]
 fName = info("fieldname")
-
+*/
 
 if  info("FormName") ="Quality"
 Field «cat #»
 endif
-
+/*
 if info("formname")="nikos" 
     case info("fieldname") = "lot" 
         field «amtrec»
@@ -293,9 +299,11 @@ if info("formname")="nikos"
         superobject "comments","open"
     defaultcase
         key info("modifiers"),KeyStroke 
+        endcase 
 endif
 
-endcase 
+
+*/
 ___ ENDPROCEDURE .tab2 _________________________________________________________
 
 ___ PROCEDURE .Initialize ______________________________________________________
@@ -457,7 +465,6 @@ if comline=""
 comline="rnq"
 endif
 
-
 ___ ENDPROCEDURE .who __________________________________________________________
 
 ___ PROCEDURE .change_weight ___________________________________________________
@@ -479,12 +486,12 @@ goform "Quality Control"
 ___ ENDPROCEDURE .windowS ______________________________________________________
 
 ___ PROCEDURE .windowR _________________________________________________________
-GoForm "roberta"
+GoForm "old roberta"
 ;openForm "roberta"
 ___ ENDPROCEDURE .windowR ______________________________________________________
 
 ___ PROCEDURE .windowN _________________________________________________________
-GoForm "nikos"
+GoForm "old nikos"
 ;openform "nikos"
 ___ ENDPROCEDURE .windowN ______________________________________________________
 
@@ -533,8 +540,7 @@ ___ PROCEDURE update Seedspecs delinked ________________________________________
 
 ;this file needs to be in the same folder as SEEDSPECS for the macro to work.
 if info("files") notcontains "SEEDSPEC delinked"
-    message "Sorry, this macro is supposed to be run in a file called 'SEEDSPEC delinked
-    '"
+    message "Sorry, this macro is supposed to be run in a file called 'SEEDSPEC delinked'"
 
 local file_names, folder_name, SeedSpecFile
 global delinkedWin, linkedWin
@@ -979,34 +985,30 @@ endif
 ___ ENDPROCEDURE .date_changed _________________________________________________
 
 ___ PROCEDURE .UpdateDate ______________________________________________________
-if  «Lot Gone»="√"
-    LotGoneDate=date("today")
-else
-    LotGoneDate=0
+local typeDate
+typeDate=""
+
+if «Lot Gone» = "√" or «Toss» = "√" or «BigGermDrop» = "√"
+    case «Lot Gone» = "√" and val(«LotGoneDate»)=0
+        LotGoneDate=date("today")
+    case «Toss»="√" and val(«TossDate»)=0
+        GetText "What Month Number",typeDate
+        TossDate=datevalue(val(datepattern(today(),"YYYY")),val(typeDate),1)
+    case «BigGermDrop»="√" and val(GermDropDate)=0
+        GermDropDate=date("today") 
+    endcase
 endif
 
-;If Toss="√"
-;   TossDate=date("today")
-;else
-;    TossDate=0
-;endif
-
-local zdate
-If Toss="√"
-getscrapok "What month number?"
-clipboard()=datevalue(2021,val(clipboard()),1)
-TossDate=clipboard()
-else
-    TossDate=0
+if «Lot Gone» ≠ "√" or «Toss» ≠ "√" or «BigGermDrop» ≠ "√"
+    case «Lot Gone»≠"√" and val(«LotGoneDate»)≠0
+            LotGoneDate=0
+     case «Toss»≠"√" and val(«TossDate»)≠0
+            TossDate=0
+    case «BigGermDrop»≠"√" and val(«GermDropDate»)≠0
+            «GermDropDate»=0
+    endcase
 endif
-																																																																																																																																											
-																																																																																																																																										
 
-if BigGermDrop="√"
-    GermDropDate=date("today")
-else
-    GermDropDate=0
-endif
 ___ ENDPROCEDURE .UpdateDate ___________________________________________________
 
 ___ PROCEDURE .MixIngreedients _________________________________________________
@@ -1048,6 +1050,9 @@ ___ ENDPROCEDURE select_germ_drop/0 ____________________________________________
 ___ PROCEDURE .AnalysisReport __________________________________________________
 local vAnalysis,vGerm,vDead,vAbnormal,vHardseed,vDormant,vViable,vReportDate,vAnalysisHistory
 
+
+//fields Germ and GermDate2 added by me, and should be deleted because they were covered by
+//result and germ_date
 field AnalysisReport
 
 vAnalysisHistory=AnalysisReport
@@ -1062,19 +1067,32 @@ vDormant=0
 vViable=0
 
 getText "What is the report date?",vReportDate
+«germ_date»=date(vReportDate)
+«GermDate2»=date(vReportDate)
+
+
 gettext "What is the % Germ?",vGerm
+    result=float(val(vGerm))
 gettext "What is the % Dead?",vDead
 gettext "What is the % Abnormal?",vAbnormal
 gettext "What is the % Hardseed?",vHardseed
-    «hard seed»=vHardseed
+    «hard seed»=str(float(val(vHardseed)))
 gettext "What is the % Dormant?",vDormant
-    «dormant seed»=vDormant
+    «dormant seed»=str(float(val(vDormant)))
+yesno "Do you want to autocaculate viability?"
+if clipboard()="Yes"
+    viability=str(float(val(result))+float(val(«hard seed»))+float(val(«dormant seed»)))
+ endif
+if clipboard()="No"
 gettext "What is the % Viable?",vViable
     viability=vViable
+endif
 
 arraylinebuild vAnalysis,"/","",str(vReportDate)+" "+(str(vGerm))+"% Germ"+"/"+(str(vDead))+"% Dead"+"/"+(str(vAbnormal))+"% Abnormal"+"/"+(str(vHardseed))+"% Hardseed"+"/"+(str(vDormant))+"% Dormant"+"/"+(str(vViable))+"% Viable"
 
 AnalysisReport=vAnalysis+?(vAnalysis="","",¶+vAnalysisHistory)
+
+call .update_germhistory
 ___ ENDPROCEDURE .AnalysisReport _______________________________________________
 
 ___ PROCEDURE mathtest _________________________________________________________
@@ -1125,6 +1143,150 @@ catLot=str(cat)+str(lot)
 commAdd=commString
 setdictionaryvalue commDictionary, catLot,commAdd
 ___ ENDPROCEDURE .communicationDictionary ______________________________________
+
+___ PROCEDURE Export Germ To Web _______________________________________________
+select «result» ≠ 0
+selectwithin result > val(pass)
+selectwithin lot < 799
+selectwithin lot >100
+Selectwithin «germ_date» >= monthmath(today(),-8) ;this should be six months preceding the day the export is being created
+
+openfile "germ-export-helper"
+openfile "&&SEEDSPECS"
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; this searches for records that are 100% duplicates and removes them
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+field compare
+formulafill str(«cat #»)+str(lot)+str(result)+datepattern(germ_date,"mm/yy")
+sortup
+selectduplicates ""
+
+local prev_compare
+firstrecord
+prev_compare = ""
+loop
+    if compare = prev_compare
+        deleterecord
+        uprecord
+    endif
+    prev_compare = compare
+    stoploopif info("eof")
+    downrecord
+while forever
+
+selectall
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; this searches for records that have the same item # and lot
+;; sorts by date and deletes the older test results.
+;; if there are two records with the same test date but different test results
+;; it's kind of arbitrary which one gets deleted.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+field germ_date
+sortdown
+field compare
+formulafill str(«cat #»)+str(lot)
+sortup
+selectduplicates ""
+
+;; if you want to deal with this type of duplicate using human judgement
+;; rather than Panorama's whim, stop the macro here.
+debug
+
+firstrecord
+prev_compare = ""
+loop
+    if compare = prev_compare
+        deleterecord
+        uprecord
+    endif
+    prev_compare = compare
+    stoploopif info("eof")
+    downrecord
+while forever
+
+selectall
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+export "germ_to_web.csv", str(«cat #»)+","+str(lot)+","+str(result)+","+datepattern(«germ_date»,"mm/yy")+¶
+message "Germination File Created"
+message "Don't forget to Select All when done reviewing selection." 
+___ ENDPROCEDURE Export Germ To Web ____________________________________________
+
+___ PROCEDURE Find.1.5.9/å _____________________________________________________
+
+
+global optionsList, searchChoice
+optionsList=""
+searchChoice=""
+
+optionsList="Cat# contains .1
+Cat# contains .5
+Cat# contains .9"
+
+superchoicedialog optionsList, searchChoice, {
+caption="What Do you you want to search by?"
+}
+
+case searchChoice contains ".1"
+    select str(«cat #») contains ".1"
+case searchChoice contains ".5"
+    select str(«cat #») contains ".5"
+case searchChoice contains ".9"
+    select str(«cat #») contains ".9"
+endcase
+
+___ ENDPROCEDURE Find.1.5.9/å __________________________________________________
+
+___ PROCEDURE ImportCatOrder ___________________________________________________
+field sparenumber2
+formulafill lookup("Cat Order","id",val(str(«cat #»)[1,"."]),"CatOrder",0,0)
+
+
+
+
+___ ENDPROCEDURE ImportCatOrder ________________________________________________
+
+___ PROCEDURE .MoveAnalysisToFields ____________________________________________
+//These are commented out becuse these were made to move data on the server for an update
+
+/*
+//Dormant Seed
+displaydata array(array(«AnalysisReport», 5,"%"),2,"/")
+field «hard seed»
+formulafill ?(array(«AnalysisReport», 5,"%") contains "hardseed",array(array(«AnalysisReport», 5,"%"),2,"/"),"")
+;displaydata array(array(«AnalysisReport», 4,"/"),1,"%")
+;displaydata ?(array(«AnalysisReport», 4,"/") contains "Hard",val(array(«AnalysisReport», 4,"/")),"")
+*/
+
+/*
+//Hard Seed
+
+field «hard seed»
+formulafill  ?(«AnalysisReport» contains "/",
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ard*",1,"/"),"/"))),
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ard*",1,","),","))))
+*/
+/*
+//Dormant Seed
+field «dormant seed»
+formulafill  ?(«AnalysisReport» contains "/",
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ormant*",1,"/"),"/"))),
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ormant*",1,","),","))))
+*/
+/*
+//Viable 
+field «viability»
+formulafill ?((«AnalysisReport» contains "/" and «AnalysisReport» contains "."),
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*iable*",1,"/"),"/"))),"")
+*/
+___ ENDPROCEDURE .MoveAnalysisToFields _________________________________________
 
 ___ PROCEDURE testcomm _________________________________________________________
 local commString
@@ -1195,7 +1357,7 @@ Option+<or>= ≤or≥ [than or equal to]"
 
 ___ ENDPROCEDURE Symbol Reference ______________________________________________
 
-___ PROCEDURE GetDBInfo ________________________________________________________
+___ PROCEDURE .GetDBInfo _______________________________________________________
 local DBChoice, vAnswer1, vClipHold
 
 Message "This Procedure will give you the names of Fields, procedures, etc in the Database"
@@ -1222,7 +1384,7 @@ bigmessage "Your clipboard now has the name(s) of "+str(vAnswer1)+"(s)"+¶+
 "Preview: "+¶+str(vClipHold)
 Clipboard()=vClipHold
 
-___ ENDPROCEDURE GetDBInfo _____________________________________________________
+___ ENDPROCEDURE .GetDBInfo ____________________________________________________
 
 ___ PROCEDURE .AutomaticFY _____________________________________________________
 
@@ -1314,7 +1476,7 @@ for assignments to that variable'd field
 
 ___ ENDPROCEDURE .AutomaticFY __________________________________________________
 
-___ PROCEDURE Folders&FilesMacros ______________________________________________
+___ PROCEDURE .Folders&FilesMacros _____________________________________________
 
 //message "This Function is meant to get you information about the folders and path your files are in for Panorama"
 
@@ -1410,9 +1572,9 @@ endif
     
 
 
-___ ENDPROCEDURE Folders&FilesMacros ___________________________________________
+___ ENDPROCEDURE .Folders&FilesMacros __________________________________________
 
-___ PROCEDURE DesignSheetExportImport __________________________________________
+___ PROCEDURE .DesignSheetExportImport _________________________________________
 global vdictionary, 
 name, value, ImportExportChoicelist,
 fileList,choiceMade,winChoice1,winChoice2,vOptions,
@@ -1509,7 +1671,7 @@ endcase
 
 
 
-___ ENDPROCEDURE DesignSheetExportImport _______________________________________
+___ ENDPROCEDURE .DesignSheetExportImport ______________________________________
 
 ___ PROCEDURE .FileChecker _____________________________________________________
 ///____________________________________________________________________________________________________________________________________
@@ -1937,11 +2099,11 @@ vProc
 
 ___ ENDPROCEDURE .GetErrorLog __________________________________________________
 
-___ PROCEDURE SeeErrorLog ______________________________________________________
+___ PROCEDURE .SeeErrorLog _____________________________________________________
 
     displaydata errorDictionary
 
-___ ENDPROCEDURE SeeErrorLog ___________________________________________________
+___ ENDPROCEDURE .SeeErrorLog __________________________________________________
 
 ___ PROCEDURE .WaitXSeconds ____________________________________________________
 local start, end,secondsToWait
@@ -1958,7 +2120,13 @@ while now()≤end
 
 ___ ENDPROCEDURE .WaitXSeconds _________________________________________________
 
-___ PROCEDURE GetWindowSize ____________________________________________________
+___ PROCEDURE .GetDesignEquations ______________________________________________
+global eqArray
+arraybuild eqArray, ¶,"", ?(Equation≠"","~~"+«Field Name»+"~~"+¶+Equation+¶,"")
+clipboard()=eqArray
+___ ENDPROCEDURE .GetDesignEquations ___________________________________________
+
+___ PROCEDURE .GetWindowSize ___________________________________________________
 global newrec, rectangle1,RecTop,RecLeft,RecHeight,RecWidth,whichWin,winList2
 
 winList2=info("windows")
@@ -1976,7 +2144,7 @@ clipboard()=newrec
 //top,left,height,width
 
 
-___ ENDPROCEDURE GetWindowSize _________________________________________________
+___ ENDPROCEDURE .GetWindowSize ________________________________________________
 
 ___ PROCEDURE .fill_inv_unit_prices ____________________________________________
 firstrecord
@@ -2183,7 +2351,7 @@ clipboard()=designExport
 ___ ENDPROCEDURE .codeCheck ____________________________________________________
 
 ___ PROCEDURE .goRoberta _______________________________________________________
-openform "roberta"
+goform "old roberta"
 ___ ENDPROCEDURE .goRoberta ____________________________________________________
 
 ___ PROCEDURE .goCatStats ______________________________________________________
@@ -2245,26 +2413,12 @@ endif
 ___ ENDPROCEDURE .longestLength ________________________________________________
 
 ___ PROCEDURE .test ____________________________________________________________
-local value,strValue
-strValue="asdba"
-value=123
-displaydata strValue[1,2]
-displaydata str(value)[1,2]
+displaydata servername("")
 ___ ENDPROCEDURE .test _________________________________________________________
 
 ___ PROCEDURE .gotoAmtRec ______________________________________________________
 field amtrec
 ___ ENDPROCEDURE .gotoAmtRec ___________________________________________________
-
-___ PROCEDURE .textImplicitAss _________________________________________________
-
-local keyStrokes,n,c keyStrokes="type this now!" n=1
-loop
-c=keyStrokes[n;1] stoploopif c="" keynow "",c t=info("tickcount") loop
-nop
-while t+20 > info("tickcount") while forever
-
-___ ENDPROCEDURE .textImplicitAss ______________________________________________
 
 ___ PROCEDURE .FIndNotGreater __________________________________________________
 global notGreater, catAmt1
@@ -2283,26 +2437,6 @@ until info("stopped")
 endnoshow
 displaydata notGreater
 ___ ENDPROCEDURE .FIndNotGreater _______________________________________________
-
-___ PROCEDURE TabOrderNotes ____________________________________________________
-local tabarray,currentfield,count
-goform 'old nikos'
-tabarray=""
-cell «»
-tabarray=info("fieldname")
-count=1
-loop
-if count=1
-keynow "","tab"
-count=count+1
-endif
-
-keynow "","tab"
-tabarray=tabarray+¶+info("fieldname")
-until info("stopped")
-
-displaydata tabarray
-___ ENDPROCEDURE TabOrderNotes _________________________________________________
 
 ___ PROCEDURE .testTab _________________________________________________________
 
