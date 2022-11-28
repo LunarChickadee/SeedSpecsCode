@@ -541,6 +541,7 @@ ___ PROCEDURE update Seedspecs delinked ________________________________________
 ;this file needs to be in the same folder as SEEDSPECS for the macro to work.
 if info("files") notcontains "SEEDSPEC delinked"
     message "Sorry, this macro is supposed to be run in a file called 'SEEDSPEC delinked'"
+endif 
 
 local file_names, folder_name, SeedSpecFile
 global delinkedWin, linkedWin
