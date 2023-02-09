@@ -3,7 +3,7 @@ local recordarray
 
 recordarray= ""
 arraylinebuild recordarray,"^","",(«preferred supplier»+"^"+str(«cat #»)+"^"+latin+"^"+common+"^"+«gmo test»+"^"+«seed color»+"^"+str(temp)+"^"+str(«1st»)+"^"+str(«2nd»)
-    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog_sequence»)
+    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog sequence»)
     +"^"+«indigenous royalties»+"^"+«breeder royalties»+"^"+ossi+"^"+pvp+"^"+str(«year of introduction»)+"^"+«Breeder»+"^"+«Black royalties»)
 
 InsertBelow
@@ -26,7 +26,7 @@ picture = array(recordarray,16,"^")
 «10 g count» = val(array(recordarray,17,"^"))
 «field notes» = array(recordarray,18,"^")
 type = array(recordarray,19,"^")
-    «catalog_sequence» = val(array(recordarray,20,"^"))
+    «catalog sequence» = val(array(recordarray,20,"^"))
     «indigenous royalties» = array(recordarray,21,"^")
     «breeder royalties» = array(recordarray,22,"^")
     ossi = array(recordarray,23,"^")
@@ -71,7 +71,7 @@ local recordarray
 
 recordarray= ""
 arraylinebuild recordarray,"^","",(«preferred supplier»+"^"+str(«cat #»)+"^"+latin+"^"+common+"^"+«gmo test»+"^"+«seed color»+"^"+str(temp)+"^"+str(«1st»)+"^"+str(«2nd»)
-    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog_sequence»)
+    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog sequence»)
     +"^"+«indigenous royalties»+"^"+«breeder royalties»+"^"+ossi+"^"+pvp+"^"+str(«year of introduction»)+"^"+«Breeder»+"^"+«Black royalties»)
 
 InsertBelow
@@ -94,7 +94,7 @@ picture = array(recordarray,16,"^")
 «10 g count» = val(array(recordarray,17,"^"))
 «field notes» = array(recordarray,18,"^")
 type = array(recordarray,19,"^")
-    «catalog_sequence» = val(array(recordarray,20,"^"))
+    «catalog sequence» = val(array(recordarray,20,"^"))
     «indigenous royalties» = array(recordarray,21,"^")
     «breeder royalties» = array(recordarray,22,"^")
     ossi = array(recordarray,23,"^")
@@ -212,12 +212,13 @@ Find «cat #»=chosen_item
 
 Field lot
 if info("formname")≠""
-    drawobjects
+drawobjects
 endif
 If  info("Found") 
 stop
 else
 Message str(chosen_item)+" wasn't found."
+//original was passive aggressive, changed to something normal
 endif
 ___ ENDPROCEDURE finditem/1 ____________________________________________________
 
@@ -990,9 +991,7 @@ InMix=vMix
 else
     InMix=""
 endif    
-if info("formname")≠""
-    drawobjects
-endif
+drawobjects
 
 
 
@@ -1110,15 +1109,136 @@ commAdd=commString
 setdictionaryvalue commDictionary, catLot,commAdd
 ___ ENDPROCEDURE .communicationDictionary ______________________________________
 
+___ PROCEDURE Export Germ To Web _______________________________________________
+select «result» ≠ 0
+selectwithin result > val(pass)
+selectwithin lot < 799
+selectwithin lot >100
+Selectwithin «germ_date» >= monthmath(today(),-8) ;this should be six months preceding the day the export is being created
+
+openfile "germ-export-helper"
+openfile "&&SEEDSPECS"
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; this searches for records that are 100% duplicates and removes them
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+field compare
+formulafill str(«cat #»)+str(lot)+str(result)+datepattern(germ_date,"mm/yy")
+sortup
+selectduplicates ""
+
+local prev_compare
+firstrecord
+prev_compare = ""
+loop
+    if compare = prev_compare
+        deleterecord
+        uprecord
+    endif
+    prev_compare = compare
+    stoploopif info("eof")
+    downrecord
+while forever
+
+selectall
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; this searches for records that have the same item # and lot
+;; sorts by date and deletes the older test results.
+;; if there are two records with the same test date but different test results
+;; it's kind of arbitrary which one gets deleted.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+field germ_date
+sortdown
+field compare
+formulafill str(«cat #»)+str(lot)
+sortup
+selectduplicates ""
+
+;; if you want to deal with this type of duplicate using human judgement
+;; rather than Panorama's whim, stop the macro here.
+debug
+
+firstrecord
+prev_compare = ""
+loop
+    if compare = prev_compare
+        deleterecord
+        uprecord
+    endif
+    prev_compare = compare
+    stoploopif info("eof")
+    downrecord
+while forever
+
+selectall
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+export "germ_to_web.csv", str(«cat #»)+","+str(lot)+","+str(result)+","+datepattern(«germ_date»,"mm/yy")+¶
+message "Germination File Created"
+message "Don't forget to Select All when done reviewing selection." 
+___ ENDPROCEDURE Export Germ To Web ____________________________________________
+
+___ PROCEDURE Find.1.5.9/å _____________________________________________________
+
+___ ENDPROCEDURE Find.1.5.9/å __________________________________________________
+
+___ PROCEDURE ImportCatOrder ___________________________________________________
+field sparenumber2
+formulafill lookup("Cat Order","id",val(str(«cat #»)[1,"."]),"CatOrder",0,0)
+
+
+
+
+___ ENDPROCEDURE ImportCatOrder ________________________________________________
+
+___ PROCEDURE .MoveAnalysisToFields ____________________________________________
+//These are commented out becuse these were made to move data on the server for an update
+
+/*
+//Dormant Seed
+displaydata array(array(«AnalysisReport», 5,"%"),2,"/")
+field «hard seed»
+formulafill ?(array(«AnalysisReport», 5,"%") contains "hardseed",array(array(«AnalysisReport», 5,"%"),2,"/"),"")
+;displaydata array(array(«AnalysisReport», 4,"/"),1,"%")
+;displaydata ?(array(«AnalysisReport», 4,"/") contains "Hard",val(array(«AnalysisReport», 4,"/")),"")
+*/
+
+/*
+//Hard Seed
+
+field «hard seed»
+formulafill  ?(«AnalysisReport» contains "/",
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ard*",1,"/"),"/"))),
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ard*",1,","),","))))
+*/
+/*
+//Dormant Seed
+field «dormant seed»
+formulafill  ?(«AnalysisReport» contains "/",
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ormant*",1,"/"),"/"))),
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*ormant*",1,","),","))))
+*/
+/*
+//Viable 
+field «viability»
+formulafill ?((«AnalysisReport» contains "/" and «AnalysisReport» contains "."),
+str(val(array(«AnalysisReport»,arraysearch(«AnalysisReport»,"*iable*",1,"/"),"/"))),"")
+*/
+___ ENDPROCEDURE .MoveAnalysisToFields _________________________________________
+
 ___ PROCEDURE testcomm _________________________________________________________
 local commString
 
 commString=""
 debug
 commString="Hi"
-if info("formname")≠""
-    drawobjects
-endif
+drawobjects
 debug
 commString=""
 ___ ENDPROCEDURE testcomm ______________________________________________________
@@ -1207,7 +1327,313 @@ vClipHold=dbinfo(vAnswer1,"")
 bigmessage "Your clipboard now has the name(s) of "+str(vAnswer1)+"(s)"+¶+
 "Preview: "+¶+str(vClipHold)
 Clipboard()=vClipHold
+   Ñ.AutomaticFYrÏˇ    ƒ ˇˇ P    dateHold, dateMath, intYear, 
+thisFYear,lastFYear,nextFYear,intMonth,fileDate
 
+ˇˇ\ .   fileDate=val(striptonum(info("databasename")))ˇˇã    nextFYear=""ˇˇò    thisFYear=""ˇˇ•    lastFYear=""
+
+//get the dateˇˇ¬ L   dateHold = datepattern(today(),"mm/yyyy")
+
+//gets the current month and yearˇˇ%   intMonth = val(dateHold[1,"/"][1,-2]) ˇˇ5E   intYear = val(dateHold["/",-1][2,-1])
+
+//assigns FY numbers for years  |DˇˇÅ   val(intMonth)>6 ˇˇï   nextFYear=str(intYear-1976) ˇˇµ   thisFYear=str(intYear-1977) ˇˇ’   lastFYear=str(intYear-1978)  Ú“ Ú“ˇˇ˜   val(intMonth)<7 ˇˇ   nextFYear=str(intYear-1977) ˇˇ+   thisFYear=str(intYear-1978) ˇˇK   lastFYear=str(intYear-1979) 3 h ßrˇˇ™*   fileDate ≤ val(lastFYear) and fileDate > 0ˇˇŸ   nextFYear=str(fileDate+1) ˇˇ˜   thisFYear=str(fileDate) ˇˇ   lastFYear=str(fileDate-1)  -~
+    
+global dateHold, dateMath, intYear, 
+thisFYear,lastFYear,nextFYear,intMonth,fileDate
+
+fileDate=val(striptonum(info("databasename")))
+nextFYear=""
+thisFYear=""
+lastFYear=""
+
+//get the date
+dateHold = datepattern(today(),"mm/yyyy")
+
+//gets the current month and year
+intMonth = val(dateHold[1,"/"][1,-2])
+intYear = val(dateHold["/",-1][2,-1])
+
+//assigns FY numbers for years
+
+case val(intMonth)>6
+    nextFYear=str(intYear-1976)
+    thisFYear=str(intYear-1977)
+    lastFYear=str(intYear-1978)
+
+case val(intMonth)<7
+    nextFYear=str(intYear-1977)
+    thisFYear=str(intYear-1978)
+    lastFYear=str(intYear-1979)
+
+endcase
+
+//checks if this is an older file and needs older FYs
+if fileDate ≤ val(lastFYear) and fileDate > 0
+    nextFYear=str(fileDate+1)
+    thisFYear=str(fileDate)
+    lastFYear=str(fileDate-1)
+endif
+
+//tallmessage str(nextFYear)+¬+str(thisFYear)+¬+str(lastFYear)
+
+
+/*
+
+///////~~~~~~~
+Programmer Notes
+~~~~~~~~~//////////
+The danger of this procedure is that come July 1st of the year, it will automatically set
+to open the newest files of a non-numbered Panorama file. And if those don't exist, you're 
+gonna see errors. Also, a non numbered Panorama file that needs to call older files shouldn't
+use this macro
+
+
+
+To use these variables please note the following Panorama syntax rules:
+
+
+filenames using variables:
+    can just concatenate as a string
+    
+    ex:
+        
+    openfile str(variable)+"filename" 
+
+
+field calls using variables:
+    best to be only one variable and nothing else
+    must be surrounded by ( )
+    
+    ex:
+    
+    field (VariableFieldName)
+    
+do your math and/or concatenation into the variable before calling it
+    VariableFieldName=str(variable)+"fieldname"
+ 
+field (str(variable)+"fieldname") will work but can cause errors
+    
+for assignments to that variable'd field 
+    use «» for "current field/current cell" 
+    
+    ex: 
+   
+    «» = "10"
+  
+    
+*/
+™  Ñ.Folders&FilesMacros Ïˇ    ƒw ˇˇ} >    commList, commWanted, clipHoldComm, buttonChoice, numChoice
+
+ˇˇª    commList=""Uˇˇ« 
+   commWanted="" ˇˇ’    clipHoldComm="" ˇˇÂ    buttonChoice="" ˇˇı    numChoice=0 ˇˇ6  commList=¶+
+    "1 - Copy Text of folderpath"
+    +¶+¬+¬+¬+¬+¬+¬+
+    "1 code -- folderpath(folder(""))"
+    +¶+" "+¶+
+    "2 - Copy list of All Files and Folders in this folder" 
+    +¶+¬+¬+¬+¬+¬+¬+
+    "2 code -- listfiles(folder(""),"")"
+    +¶+" "+¶+
+    "3 - Copy list of All Panorama files in this folder" 
+    +¶+¬+¬+¬+¬+¬+¬+
+    '3 code -- listfiles(folder(""),"????KASX")'
+    +¶+" "+¶+
+    "4 - Copy list of All Text files in this folder" 
+    +¶+¬+¬+¬+¬+¬+¬+
+    '4 code -- listfiles(folder(""),"TEXT????")'
+
+/*
+
+//NOTE: these quotation marks “” vs "" are called smart quotes
+//you get them with opt+[ and opt+shift+[
+//normally for superchoicedialogs, i would use curly brackets around title or caption
+//but to have this be able to be written into new files from another macro, I had
+//to use smart quotes
+
+*/9ˇˇJ   {_DialogAlertLib} ˇˇJ   {SUPERCHOICEDIALOG},ˇˇK	   commList, ˇˇT    commWanted,ˇˇ`Ã    
+“Title="Get File/Folder/Path"
+    Caption="1 - Copy ~~~~~~ gets you the data
+        1 - Code ~~~~~~ gets you the formula"
+    captionheight="2"
+    buttons="Ok;Cancel"
+    width="800"
+    height="800"”  ;ˇˇ;   clipHoldComm=commWanted ˇˇ['   numChoice=striptonum(clipHoldComm)[1,3]  Öºˇˇà#   commWanted[1,12] notcontains "code"  ±lˇˇ∂
+   numChoice="1" Ãˇˇ◊   {_DialogAlertLib} ˇˇ◊   {TALLMESSAGE},ˇˇÿ.   "clipboard now has: "+¶+folderpath(folder(""))ˇˇ"   clipboard()=folderpath(folder("")) 7∏ 7&ˇˇ<
+   numChoice="2" Rˇˇ]   {_DialogAlertLib} ˇˇ]   {TALLMESSAGE},ˇˇ^0   "clipboard now has: "+¶+listfiles(folder(""),"")ˇˇó$   clipboard()=listfiles(folder(""),"") ≈∏ ≈ˇˇ 
+   numChoice="3" ‡ˇˇÎ   {_DialogAlertLib} ˇˇÎ   {TALLMESSAGE},ˇˇÏ8   "clipboard now has: "+¶+listfiles(folder(""),"????KASX")ˇˇ-,   clipboard()=listfiles(folder(""),"????KASX") _∏ _∏ˇˇd
+   numChoice="4" zˇˇÖ   {_DialogAlertLib} ˇˇÖ   {TALLMESSAGE},ˇˇÜ8   "clipboard now has: "+¶+listfiles(folder(""),"TEXT????")ˇˇ«,   clipboard()=listfiles(folder(""),"TEXT????")3 ˘   ˇˇ    commWanted[1,12] contains "code" 0§	ˇˇ5
+   numChoice="1"ˇˇG$   clipboard()='folderpath(folder(""))'pˇˇ{   {_DialogAlertLib} ˇˇ{   {TALLMESSAGE},ˇˇ|0   "clipboard now has: "+¶+'folderpath(folder(""))' ≤¸ ≤b
+ˇˇ∑
+   numChoice="2"ˇˇ…&   clipboard()='listfiles(folder(""),"")'Ùˇˇˇ   {_DialogAlertLib}ˇˇˇ   {TALLMESSAGE},ˇˇ 	2   "clipboard now has: "+¶+'listfiles(folder(""),"")' <	¸ <	0ˇˇA	
+   numChoice="3" W	ˇˇb	   {_DialogAlertLib}ˇˇb	   {TALLMESSAGE},ˇˇc	:   "clipboard now has: "+¶+'listfiles(folder(""),"????KASX")'ˇˇ¶	.   clipboard()='listfiles(folder(""),"????KASX")' ⁄	¸ ⁄	¸ˇˇﬂ	
+   numChoice="4" ı	ˇˇ 
+   {_DialogAlertLib} ˇˇ 
+   {TALLMESSAGE},ˇˇ
+:   "clipboard now has: "+¶+'listfiles(folder(""),"TEXT????")'ˇˇD
+.   clipboard()='listfiles(folder(""),"TEXT????")'3 x
+ Ä
+å
+
+//message "This Function is meant to get you information about the folders and path your files are in for Panorama"
+
+
+global commList, commWanted, clipHoldComm, buttonChoice, numChoice
+
+commList=""
+commWanted=""
+clipHoldComm=""
+buttonChoice=""
+numChoice=0
+
+commList=¶+
+    "1 - Copy Text of folderpath"
+    +¶+¬+¬+¬+¬+¬+¬+
+    "1 code -- folderpath(folder(""))"
+    +¶+" "+¶+
+    "2 - Copy list of All Files and Folders in this folder" 
+    +¶+¬+¬+¬+¬+¬+¬+
+    "2 code -- listfiles(folder(""),"")"
+    +¶+" "+¶+
+    "3 - Copy list of All Panorama files in this folder" 
+    +¶+¬+¬+¬+¬+¬+¬+
+    '3 code -- listfiles(folder(""),"????KASX")'
+    +¶+" "+¶+
+    "4 - Copy list of All Text files in this folder" 
+    +¶+¬+¬+¬+¬+¬+¬+
+    '4 code -- listfiles(folder(""),"TEXT????")'
+
+/*
+
+//NOTE: these quotation marks “” vs "" are called smart quotes
+//you get them with opt+[ and opt+shift+[
+//normally for superchoicedialogs, i would use curly brackets around title or caption
+//but to have this be able to be written into new files from another macro, I had
+//to use smart quotes
+
+*/
+superchoicedialog commList, commWanted, 
+“Title="Get File/Folder/Path"
+    Caption="1 - Copy ~~~~~~ gets you the data
+        1 - Code ~~~~~~ gets you the formula"
+    captionheight="2"
+    buttons="Ok;Cancel"
+    width="800"
+    height="800"”
+    
+
+        clipHoldComm=commWanted
+        numChoice=striptonum(clipHoldComm)[1,3]
+
+
+if commWanted[1,12] notcontains "code"
+
+    case numChoice="1"
+        tallmessage "clipboard now has: "+¶+folderpath(folder(""))
+        clipboard()=folderpath(folder(""))
+
+    case numChoice="2"
+        tallmessage "clipboard now has: "+¶+listfiles(folder(""),"")
+        clipboard()=listfiles(folder(""),"")
+    
+    case numChoice="3"
+        tallmessage "clipboard now has: "+¶+listfiles(folder(""),"????KASX")
+        clipboard()=listfiles(folder(""),"????KASX")
+
+    case numChoice="4"
+        tallmessage "clipboard now has: "+¶+listfiles(folder(""),"TEXT????")
+        clipboard()=listfiles(folder(""),"TEXT????")
+
+    endcase
+endif
+
+if commWanted[1,12] contains "code"
+    case numChoice="1"
+    clipboard()='folderpath(folder(""))'
+    tallmessage "clipboard now has: "+¶+'folderpath(folder(""))'
+
+    case numChoice="2"
+    clipboard()='listfiles(folder(""),"")'
+    tallmessage "clipboard now has: "+¶+'listfiles(folder(""),"")'
+    
+    case numChoice="3"
+        tallmessage "clipboard now has: "+¶+'listfiles(folder(""),"????KASX")'
+        clipboard()='listfiles(folder(""),"????KASX")'
+
+    case numChoice="4"
+        tallmessage "clipboard now has: "+¶+'listfiles(folder(""),"TEXT????")'
+        clipboard()='listfiles(folder(""),"TEXT????")'
+
+    endcase
+endif
+    
+
+  Ñ.DesignSheetExportImportÑÏˇ    ƒ  ˇˇ è    vdictionary, 
+name, value, ImportExportChoicelist,
+fileList,choiceMade,winChoice1,winChoice2,vOptions,
+fieldNames,designExport,designFields
+
+
+ Ä° ˇˇ™ *   "1 copyall | 2 move DB | 3 name&equations" ÷ 8ˇˇ€    val(clipboard())=2ˇˇÔ 9   vOptions=“caption="Choose file to export equations from"”ˇˇ)
+   choiceMade=""ˇˇ7)   fileList=listfiles(folder(""),"????KASX") cˇˇt   {_DialogAlertLib} ˇˇt   {SUPERCHOICEDIALOG},ˇˇu	   fileList, ˇˇ~    choiceMade,ˇˇä	    vOptions   ïˇˇï   winChoice1=choiceMade ¨ˇˇΩ   {_DialogAlertLib} ˇˇΩ   {SUPERCHOICEDIALOG},ˇˇæ	   fileList, ˇˇ«    choiceMade,ˇˇ”/   
+“caption="Choose file to export equations to"”   ˇˇ   winChoice2=choiceMade  ˇˇ!   (winChoice1)K 2ˇˇF   vdictionary=""‰ Y nˇˇë
+   {_TextLib}ˇˇë   {SETDICTIONARYVALUE}, ˇˇí   vdictionary,ˇˇü
+   «Field Name», ˇˇ≠
+   «Equation»„ ƒ ◊
+ˇˇ›   info("stopped")  Óˇˇı   (winChoice2)K ‰  / @ˇˇF
+   "Equation"ˇˇ]2   «» = getdictionaryvalue(vdictionary, «Field Name»)„ ú Ø¿ˇˇµ   info("stopped")  ∆Ñ ∆^ˇˇÀ   val(clipboard())=1ˇˇﬁ?   vOptions=“caption="Choose file to copy Design Sheet info from"” ˇˇ
+   choiceMade="" ˇˇ,)   fileList=listfiles(folder(""),"????KASX") Xˇˇi   {_DialogAlertLib} ˇˇi   {SUPERCHOICEDIALOG},ˇˇj	   fileList, ˇˇs    choiceMade,ˇˇ	    vOptions   äˇˇä   winChoice1=choiceMade  ¢ˇˇ©   (winChoice1)K ∫ˇˇŒ   vdictionary=""ˇˇﬁ
+   fieldNames="" ˇˇÏ   designExport="" ˇˇ¸   designFields=""  ˇˇ   "Field Name"  ˇˇ)b   designFields=?(designFields≠"",designFields+¬+“"”+info("fieldname")+“"”,“"”+info("fieldname")+“"”)∞ ∂ˇˇº   info("stopped") :œˇˇ⁄
+   designExport, ˇˇË   ¶,ˇˇÍ   "", ˇˇÓ   exportline()ˇˇ˚(   designExport=designFields+¶+designExport¿$ˇˇ,   "Design Sheet in clipboard."ˇˇI   clipboard()=designExport cÑ c\ˇˇh   val(clipboard())=3ˇˇ{   designExport="" ‰ ã ó úˇˇ¢   "Field Name"ˇˇ∞5   designExport=designExport+«Field Name»+¶+Equation+¶+¶ „ Ê Òûˇˇ˜   info("stopped") ¿ˇˇ   "Clipboard filled!" ˇˇ#   clipboard()=designExport2 =Ñ¿IˇˇQ   "Invalid Number Choice" 3 itglobal vdictionary, 
+name, value, ImportExportChoicelist,
+fileList,choiceMade,winChoice1,winChoice2,vOptions,
+fieldNames,designExport,designFields
+
+
+// Get the 
+GetScrap "1 copyall | 2 move DB | 3 name&equations"
+
+case val(clipboard())=2
+
+vOptions=“caption="Choose file to export equations from"”
+choiceMade=""
+fileList=listfiles(folder(""),"????KASX")
+
+
+superchoicedialog fileList, choiceMade, vOptions
+
+winChoice1=choiceMade
+
+superchoicedialog fileList, choiceMade,
+“caption="Choose file to export equations to"”
+
+winChoice2=choiceMade
+window (winChoice1)
+    opendesignsheet
+    vdictionary=""
+    firstrecord
+
+        loop
+            setdictionaryvalue vdictionary, «Field Name», «Equation»
+            downrecord
+        until info("stopped")
+
+window (winChoice2)
+    opendesignsheet
+    firstrecord
+
+        loop
+            field «Equation»
+            «» = getdictionaryvalue(vdictionary, «Field Name»)
+            downrecord
+        until info("stopped")
+
+case val(clipboard())=1
+vOptions=“caption="Choose file to copy Design Sheet info from"”
+choiceMade=""
+fileList=listfiles(folder(""),"????KASX")
+
+
+superchoicedialog fileList, choice
 ___ ENDPROCEDURE .GetDBInfo ____________________________________________________
 
 ___ PROCEDURE .AutomaticFY _____________________________________________________
@@ -1944,6 +2370,12 @@ while now()≤end
 
 ___ ENDPROCEDURE .WaitXSeconds _________________________________________________
 
+___ PROCEDURE .GetDesignEquations ______________________________________________
+global eqArray
+arraybuild eqArray, ¶,"", ?(Equation≠"","~~"+«Field Name»+"~~"+¶+Equation+¶,"")
+clipboard()=eqArray
+___ ENDPROCEDURE .GetDesignEquations ___________________________________________
+
 ___ PROCEDURE .GetWindowSize ___________________________________________________
 global newrec, rectangle1,RecTop,RecLeft,RecHeight,RecWidth,whichWin,winList2
 
@@ -2119,9 +2551,7 @@ loop
     downrecord
 until info("stopped")
 
-if info("formname")≠""
-    drawobjects
-endif
+drawobjects
 ___ ENDPROCEDURE .calc_order_unit_costs ________________________________________
 
 ___ PROCEDURE .fill_bonus ______________________________________________________
@@ -2187,9 +2617,7 @@ ___ PROCEDURE .fillhistory _____________________________________________________
 ___ ENDPROCEDURE .fillhistory __________________________________________________
 
 ___ PROCEDURE .drawobjects _____________________________________________________
-if info("formname")≠""
-    drawobjects
-endif
+drawobjects
 ___ ENDPROCEDURE .drawobjects __________________________________________________
 
 ___ PROCEDURE .longestLength ___________________________________________________
@@ -2235,11 +2663,7 @@ endif
 ___ ENDPROCEDURE .longestLength ________________________________________________
 
 ___ PROCEDURE .test ____________________________________________________________
-local value,strValue
-strValue="asdba"
-value=123
-displaydata strValue[1,2]
-displaydata str(value)[1,2]
+displaydata servername("")
 ___ ENDPROCEDURE .test _________________________________________________________
 
 ___ PROCEDURE .gotoAmtRec ______________________________________________________
@@ -2268,36 +2692,6 @@ ___ PROCEDURE .testTab _________________________________________________________
 
 ___ ENDPROCEDURE .testTab ______________________________________________________
 
-___ PROCEDURE CatNumsWithDecimals/å ____________________________________________
+___ PROCEDURE .DeleteThis ______________________________________________________
 
-
-global optionsList, searchChoice
-optionsList=""
-searchChoice=""
-
-optionsList="Cat# contains .1
-Cat# contains .5
-Cat# contains .9"
-
-superchoicedialog optionsList, searchChoice, {
-caption="What Do you you want to search by?"
-}
-
-case searchChoice contains ".1"
-    select str(«cat #») contains ".1"
-case searchChoice contains ".5"
-    select str(«cat #») contains ".5"
-case searchChoice contains ".9"
-    select str(«cat #») contains ".9"
-endcase
-
-___ ENDPROCEDURE CatNumsWithDecimals/å _________________________________________
-
-___ PROCEDURE ImportCatOrder ___________________________________________________
-field sparenumber2
-formulafill lookup("Cat Order","id",val(str(«cat #»)[1,"."]),"CatOrder",0,0)
-
-
-
-
-___ ENDPROCEDURE ImportCatOrder ________________________________________________
+___ ENDPROCEDURE .DeleteThis ___________________________________________________
