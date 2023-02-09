@@ -3,7 +3,7 @@ local recordarray
 
 recordarray= ""
 arraylinebuild recordarray,"^","",(«preferred supplier»+"^"+str(«cat #»)+"^"+latin+"^"+common+"^"+«gmo test»+"^"+«seed color»+"^"+str(temp)+"^"+str(«1st»)+"^"+str(«2nd»)
-    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog_sequence»)
+    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog sequence»)
     +"^"+«indigenous royalties»+"^"+«breeder royalties»+"^"+ossi+"^"+pvp+"^"+str(«year of introduction»)+"^"+«Breeder»+"^"+«Black royalties»)
 
 InsertBelow
@@ -26,7 +26,7 @@ picture = array(recordarray,16,"^")
 «10 g count» = val(array(recordarray,17,"^"))
 «field notes» = array(recordarray,18,"^")
 type = array(recordarray,19,"^")
-    «catalog_sequence» = val(array(recordarray,20,"^"))
+    «catalog sequence» = val(array(recordarray,20,"^"))
     «indigenous royalties» = array(recordarray,21,"^")
     «breeder royalties» = array(recordarray,22,"^")
     ossi = array(recordarray,23,"^")
@@ -71,7 +71,7 @@ local recordarray
 
 recordarray= ""
 arraylinebuild recordarray,"^","",(«preferred supplier»+"^"+str(«cat #»)+"^"+latin+"^"+common+"^"+«gmo test»+"^"+«seed color»+"^"+str(temp)+"^"+str(«1st»)+"^"+str(«2nd»)
-    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog_sequence»)
+    +"^"+spec+"^"+subs+"^"+pass+"^"+G+"^"+altlatin+"^"+nikosnotes+"^"+picture+"^"+str(«10 g count»)+"^"+«field notes»+"^"+type+"^"+str(«catalog sequence»)
     +"^"+«indigenous royalties»+"^"+«breeder royalties»+"^"+ossi+"^"+pvp+"^"+str(«year of introduction»)+"^"+«Breeder»+"^"+«Black royalties»)
 
 InsertBelow
@@ -94,7 +94,7 @@ picture = array(recordarray,16,"^")
 «10 g count» = val(array(recordarray,17,"^"))
 «field notes» = array(recordarray,18,"^")
 type = array(recordarray,19,"^")
-    «catalog_sequence» = val(array(recordarray,20,"^"))
+    «catalog sequence» = val(array(recordarray,20,"^"))
     «indigenous royalties» = array(recordarray,21,"^")
     «breeder royalties» = array(recordarray,22,"^")
     ossi = array(recordarray,23,"^")
