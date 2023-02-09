@@ -307,8 +307,10 @@ endif
 ___ ENDPROCEDURE .tab2 _________________________________________________________
 
 ___ PROCEDURE .Initialize ______________________________________________________
-global vwho, vnumb, vlot, vfield, vgermdate, zsupplier, zfreight, zcleaning, zphyto, zfees, zother,
-zfreightpercent, zcleaningpercent, zphytopercent, zfeespercent, zotherpercent, zinvoicenotes,v1stCount,vFinalCount
+global vwho, vnumb, vlot, vfield, vgermdate, zsupplier, zfreight,
+zcleaning, zphyto, zfees, zother,
+zfreightpercent, zcleaningpercent, zphytopercent, zfeespercent,
+zotherpercent, zinvoicenotes,v1stCount,vFinalCount
 vwho=""
 vnumb=0
 vlot=0
@@ -330,18 +332,18 @@ zotherpercent=0
 if val(info("version")[1,1])>5
 forcesynchronize
 endif
+
+if folderpath(dbinfo("folder","")) CONTAINS "Facilitator"
+openform "facilitator readonly"
+endif
+
 if info("SerialNumber") CONTAINS "81490"
 
 opensecret "certification list"
 endif
 call "sort list/ß"
 
-;this was for cr
-;if info("SerialNumber") CONTAINS "71911"
-;select lot ≠ 900
-;selectwithin str(«cat #») notcontains "."
-;endif
-//opensecret "supplier list"
+
 ___ ENDPROCEDURE .Initialize ___________________________________________________
 
 ___ PROCEDURE .namer/µ _________________________________________________________
@@ -1222,7 +1224,6 @@ ___ ENDPROCEDURE Export Germ To Web ____________________________________________
 
 ___ PROCEDURE Find.1.5.9/å _____________________________________________________
 
-
 global optionsList, searchChoice
 optionsList=""
 searchChoice=""
@@ -1242,7 +1243,6 @@ case searchChoice contains ".5"
 case searchChoice contains ".9"
     select str(«cat #») contains ".9"
 endcase
-
 ___ ENDPROCEDURE Find.1.5.9/å __________________________________________________
 
 ___ PROCEDURE ImportCatOrder ___________________________________________________
@@ -1384,7 +1384,6 @@ vClipHold=dbinfo(vAnswer1,"")
 bigmessage "Your clipboard now has the name(s) of "+str(vAnswer1)+"(s)"+¶+
 "Preview: "+¶+str(vClipHold)
 Clipboard()=vClipHold
-
 ___ ENDPROCEDURE .GetDBInfo ____________________________________________________
 
 ___ PROCEDURE .AutomaticFY _____________________________________________________
